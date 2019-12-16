@@ -1,0 +1,193 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:p="http://primefaces.org/ui">
+
+
+<h:head>
+	<title>To-Do list HomePage</title>
+</h:head>
+<h:body>
+
+<style type="text/css">
+    .value {
+        font-weight: bold;
+    }
+     
+    .ui-datatable {
+        margin-bottom: 25px
+    }
+     
+    .ui-datatable .ui-datatable-footer {
+        text-align:left;
+    }
+     
+    .ui-datalist ul {
+        padding: 0 0 0 10px;
+        margin: 5px 0;
+    }
+     
+    .ui-datatable .ui-button-icon-only .ui-button-text {
+        padding: 0;
+        line-height: 1.2;
+    }
+</style>
+	<h:form>
+		<div align="center">
+			<h:outputText value="Welcome #{login.user}" />
+		</div>
+		<div align="right">
+			<h:commandLink action="#{login.logout}" value="Logout"></h:commandLink>
+		</div>
+	</h:form>
+	
+	<h:form id="taskForm">
+		<p:growl id="messages" showDetail="true" />
+		<p:toolbar>
+			<f:facet name="left">
+				<p:commandButton type="button" value="New" icon="ui-icon-document"
+					onclick="PF('addATaskWv').show()" update="@this" ajax="true" />
+					
+				<p:commandButton value="Open" process="dataTaable1" 
+							update=":taskForm:taskDetail" oncomplete="PF('taskDialog').show()" 
+							icon="ui-icon-folder-open"
+							title="View">
+						<f:setPropertyActionListener value="#{todo}" target="#{summaryRowView.selectedTodo}" />
+		        </p:commandButton>	
+
+				<span class="ui-separator"> <span
+					class="ui-icon ui-icon-grip-dotted-vertical" />
+				</span>
+				
+				<p:commandButton type="button" title="Print" icon="ui-icon-print" />
+				
+				<p:commandButton process="dataTaable1" update=":taskForm:taskRemoveDetail,taskForm:dataTaable1"
+						onclick="PF('taskRemoveDialog').show()"
+						icon="ui-icon-trash" title="Delete">
+					<f:setPropertyActionListener value="#{todo}" target="#{summaryRowView.selectedTodo}" />	
+				</p:commandButton>
+			</f:facet>
+		</p:toolbar>
+	
+		<f:metadata>
+			<f:viewParam name="init" value="#{summaryRowView.init()}" />
+			<f:event type="preRenderView" listener="#{summaryRowView.init()}" />
+		</f:metadata>
+
+		<p:panel>
+			<p:dataTable id="dataTaable1" var="todoList" value="#{summaryRowView.todoList}" selectionMode="single" selection="#{summaryRowView.selectedTodo}" rowKey="#{todoList.id}" sortBy="#{todoList.dueDate}" resizableColumns="true" style="margin-bottom:20px">
+				<p:column headerText="Id" sortBy="#{todoList.id}">
+					<h:outputText value="#{todoList.id}" />
+				</p:column>
+				<p:column headerText="title" sortBy="#{todoList.title}">
+					<h:outputText value="#{todoList.title}" />
+				</p:column>
+				<p:column headerText="status" sortBy="#{todoList.done}">
+					<h:outputText value="#{todoList.done ? 'Done':'Not done'}" />
+				</p:column>
+				<p:column headerText="Due Date" sortBy="#{todoList.dueDate}">
+					<h:outputText value="#{todoList.dueDate}" />
+				</p:column>
+				<p:column headerText="priority" sortBy="#{todoList.priority}">
+					<h:outputText value="#{todoList.priority}" />
+				</p:column>
+				<p:column style="width:62px;text-align: center">
+					<p:commandButton title="Delete" icon="ui-icon-trash"
+						action="#{summaryRowView.removeTodo(todoList.id)}" ajax="true"
+						process="@this" update="dataTaable1" />
+				</p:column>
+			</p:dataTable>
+		</p:panel>
+
+		<p:dialog id="addATask_id" header="Create a new Task"
+			widgetVar="addATaskWv" closable="true" resizable="true">
+			
+			<p:panelGrid  columns="2"  columnClasses="label,value">
+			
+				<p:outputLabel for="title" value="Title :" />
+				<p:inputText id="title" value="#{addTask.title}" required="true" immediate="true" >
+					<p:ajax event="change" global="false" process="title" update="btn_add_nota" />
+				</p:inputText>
+				<p:outputLabel for="dueDate" value="Due date :" />
+				<p:calendar id="dueDate" value="#{addTask.dueDate}" required="true" immediate="true">
+					<p:ajax event="dateSelect" listener="#{addTask.onDateSelect}"  update="btn_add_nota" />
+				</p:calendar>
+				<p:outputLabel for="priority" value="Priority :" />
+				<p:selectOneMenu id="priority" value="#{addTask.selectedPriority}">
+					<f:selectItems value="#{addTask.priority}" />
+				</p:selectOneMenu>
+				
+				<p:commandButton id="btn_add_nota_NO" value="Annulla"
+					 oncomplete="PF('addATaskWv').hide();"
+					actionListener="#{addTask.resetFields()}" update="addATask_id" process="@this">
+				</p:commandButton>
+
+				<p:commandButton id="btn_add_nota" value="Conferma"
+					update="dataTaable1,addATask_id" process="addATask_id"
+					oncomplete="PF('addATaskWv').hide();" action="#{addTask.addTodo()}"
+					disabled="#{empty addTask.dueDate or empty addTask.title}"
+					ajax="true">
+				</p:commandButton>
+				
+			</p:panelGrid>
+		</p:dialog>
+		
+		<p:dialog header="Task Detail" widgetVar="taskDialog" modal="true" showEffect="fade" hideEffect="fade" resizable="false">
+        	<p:outputPanel id="taskDetail" style="text-align:center;">
+        	
+            <p:panelGrid  columns="2"  columnClasses="label,value">
+                
+                <h:outputText value="Title" />
+                <h:outputText value="#{summaryRowView.selectedTodo.title}" />
+ 				
+ 				<h:outputText value="Due Date:" />
+                <h:outputText value="#{summaryRowView.selectedTodo.dueDate}" />
+                
+                <h:outputText value="Priority" />
+                <h:outputText value="#{summaryRowView.selectedTodo.priority}" />
+ 
+                <h:outputText value="Status" />
+                <p:selectBooleanButton id="value2" value="#{summaryRowView.selectedTodo.done}" onLabel="Done" offLabel="Not Done" onIcon="pi pi-check" offIcon="pi pi-times" style="width:100px">
+           		 <p:ajax update="dataTaable1" listener="#{summaryRowView.updateSelectedTodo(summaryRowView.selectedTodo.done)}" />
+        		</p:selectBooleanButton>
+               
+            </p:panelGrid>
+        </p:outputPanel>
+    </p:dialog>
+    
+    <p:dialog header="Task remove" widgetVar="taskRemoveDialog" modal="true" showEffect="fade" hideEffect="fade" resizable="false">
+        	
+       <p:outputPanel id="taskRemoveDetail" style="text-align:center;">
+            <p:panelGrid  columns="2"  columnClasses="label,value">
+                <h:outputText value="Title" />
+                <h:outputText value="#{summaryRowView.selectedTodo.title}" />
+ 				<h:outputText value="Due Date:" />
+                <h:outputText value="#{summaryRowView.selectedTodo.dueDate}" />
+                <h:outputText value="Priority" />
+                <h:outputText value="#{summaryRowView.selectedTodo.priority}" />
+               	<h:outputText value="Status" />
+				<h:outputText value="#{todoList.done ? 'Done':'Not done'}" />
+            </p:panelGrid>
+        	
+        	<p:commandButton value="SI" type="button"
+					id="remove_si"
+					process="@this"
+					action="#{summaryRowView.removeTodo(summaryRowView.selectedTodo.id)}" 
+					oncomplete="PF('taskRemoveDialog').hide();" ajax="true"/>
+			<span>&nbsp;</span>
+			<p:commandButton value="NO" type="button"
+					id="remove_no"
+					process="@this" 
+					oncomplete="PF('taskRemoveDialog').hide();" ajax="true"/>
+		</p:outputPanel>
+   	 </p:dialog>
+   	 
+		
+	</h:form>
+
+</h:body>
+</html>
